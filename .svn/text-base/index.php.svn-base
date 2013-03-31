@@ -1,0 +1,12 @@
+<?php
+require_once '/var/www/ozalid/trace/RestfulHelper.php';
+
+if(isset($_POST['m'])){
+	$data = $_POST["m"];
+	//echo "$data";
+	$ret = RestfulHelper::post("http://localhost:8001/base1/t01/", $data);
+	echo $ret;
+}
+else{
+	echo "request is not valid";	
+}

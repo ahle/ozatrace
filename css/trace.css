@@ -1,0 +1,36 @@
+#chart1 * {
+  stroke: none;
+  stroke-width: 1px;
+  cursor: default;
+  font: default;
+  fill-opacity: 1;
+  fill: none;
+}
+
+#chart1 text {
+  font: 10px sans-serif;
+  fill: #000000;
+}
+
+#chart1 .background {
+  fill: none;
+  pointer-events: all;
+}
+#chart1 {
+  margin-left: 0px;
+  
+}
+
+#chart1 .background {
+  fill: #ddd;
+}
+
+#chart1 .dot {
+  stroke: #000;
+}
+
+#chart1 .axis path,#chart1 .axis line {
+  fill: none;
+  stroke: #fff !important;
+  shape-rendering: crispEdges;
+}

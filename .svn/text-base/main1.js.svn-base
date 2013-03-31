@@ -1,0 +1,376 @@
+/**
+ * loadResource.
+ * @param type 	type of resource.
+ * @param src 	source of resource.
+ */
+function loadResource(type,src,pos){
+	var res = false;
+	if(type=='js'){
+		res = document.createElement('script');
+		res.type = "text/javascript";
+		res.src = src;
+		//res.onload = callback1;
+	} else if(type=='css'){
+		res = document.createElement('link');
+		res.rel = "stylesheet";
+		res.href = src;
+	}
+	
+	if(res){
+		if(pos=="ebody"){
+			document.body.appendChild(res);
+		}
+		else{
+			document.getElementsByTagName('head')[0].appendChild(res);
+		}
+	}
+	else{
+		console.log("the resource is not loaded!");
+	}	
+}
+
+if (typeof trace === 'undefined') {
+	trace = {};
+}
+
+trace.StartUI = function (container){
+	this.container = container;
+	this.icon = null;
+	this.active = false;
+	this.visualisationUI = false;
+	
+	this.open = open;
+	open = function(){
+		
+	};
+	
+	node = document.createElement("input");
+	node.type = 'button';
+	node.id = 'traceicon';
+	node.value = 'Trace';
+	node.setAttribute('class','btn btn-primary');
+	startUI = this;	
+	this.container.appendChild(node);
+	node.onclick = function(){
+		//alert("click");
+		
+		if(!startUI.visualisationUI){
+			startUI.visualisationUI = new trace.VisualisationUI();
+		} else{
+			startUI.visualisationUI.show();
+		}
+	};
+	this.node = node;
+};
+
+trace.VisualisationUI = function(){
+	this.autoOpen = true;
+	this.timeline = null;
+	
+	var modal = new trace.Modal();
+	modal.createModal();
+	this.modal = modal;
+	
+	if(this.autoOpen){
+		
+		
+		modal.setModal("Trace", function(){});
+		modal.show();
+		//this.timeline = new trace.Timeline($(modal.node).find('.modal-body')[0]);
+		//this.timeline.draw();
+		//this.timeline = new trace.TimelineSVG($(modal.node).find('.modal-body')[0]);
+		//this.timeline.draw();
+	}
+	this.close = function(){
+		//alert("close");
+	};
+	this.show = function(){
+		modal.show();
+	};
+	
+};
+
+/**
+ * Created by Hoang, SILEX
+ */
+// loading scritps and styles
+var ozatrace_prefix = window.location.protocol + "//" + window.location.host + "/ozalid/";
+if(!window.jQuery){	
+	loadResource("js",ozatrace_prefix + "trace/jquery.js");
+}
+
+
+
+loadResource("js",ozatrace_prefix + "trace/collector.js");
+//loadResource("css",ozatrace_prefix + "trace/css/timeline.css");
+//loadResource("js",ozatrace_prefix + "trace/timeline.js");
+//loadResource("js",ozatrace_prefix + "trace/visualisation.js");
+//loadResource("css",ozatrace_prefix + "trace/jquery-ui/css/no-theme/jquery-ui.css");
+//loadResource("js",ozatrace_prefix + "trace/jquery-ui/js/jquery-ui.js","ebody");
+
+
+trace.Modal = function(){
+	this.modal = null;
+	
+	this.createModal = function (){
+		var dialog 
+				= '<div id="traceModal" class="modal hide fade" style="width:80%;height:600px;left:20%">';
+	    dialog += '<div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h3></h3></div>';
+	    dialog += '<div class="modal-body" style="max-height: 600px"><select id="tick1" style="display:none"> '
+	    	+'<option value="0">1 day</option> '
+	    	+' <option value="1">4 hours</option> '
+	    	+'</select><center><p id="chart1"></p></center></div>';
+	    dialog += '<div class="modal-footer"><button class="btn btn-primary callback-btn" data-dismiss="modal">Close</button></div></div>';	    
+	    $('body').append(dialog);
+	    
+	    var btPanForward = '<button id="pan_forward" class="btn">Pan Forward </button>';
+		var btPanBackward = '<button id="pan_backward" class="btn">Pan Backward </button>';
+		var btZoomIn = '<button id="zoom_in" class="btn">Zoom In </button>';
+		var btZoomOut = '<button id="zoom_out" class="btn">Zoom Out </button>';
+		var gButtonLayout = '<div class="btn-group pull-right">&content</div>';
+		var gButton = [btPanBackward, btPanForward, btZoomIn, btZoomOut].join("");
+		var btnGroup = gButtonLayout.replace("&content", gButton);
+		
+		
+	    
+	    this.node = $("#traceModal")[0];
+	};
+	
+	this.setModal = function (header, text, callback) {
+	    $(this.node)
+	      .find('.modal-header > h3').text(header).end()
+	      //.find('.modal-body').text(text).end()
+	      .find('.callback-btn').off('click.callback')
+	        .on('click.callback', callback);
+	  };
+	this.show = function(){
+		$(this.node).modal('show');
+	};
+};
+
+trace.KtbsSync = function(trace_uri,model_uri){
+	this.trace_uri = trace_uri;
+	this.model_uri = model_uri;
+	
+	this.getNewObsel = function(){
+		var newobsels = [];
+		var obsels = JSON.parse(localStorage["obselset"]);
+		$(obsels).each(function(index,item){
+			if(item.lc_status!="sent"){
+				item["lc_index"] = index;// marker for retrieving the item in localStorage
+				newobsels.push(item);
+			}			
+		});
+		return newobsels;		
+	};
+	
+	this.toTurtle = function(item){
+		var id = item["type"] + Math.floor(Math.random()*1000);
+		
+		
+		var prefixes = [];
+		prefixes.push("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .");
+		prefixes.push("@prefix ktbs: <http://liris.cnrs.fr/silex/2009/ktbs#> .");
+		prefixes.push("@prefix : <"+this.model_uri+"> .");
+				
+		var statements = [];
+		statements.push("<"+id+"> a <"+item["type"]+">.");
+		statements.push("<"+id+"> ktbs:hasTrace <> .");		
+		statements.push("<"+id+"> ktbs:hasBeginDT \""+item["start"]+"\"^^xsd:dateTime .");
+		statements.push("<"+id+"> ktbs:hasEndDT \""+item["start"]+"\"^^xsd:dateTime .");		
+		
+		// TODO
+		
+		return prefixes.join("\n")+"\n"+statements.join("\n");
+	};
+	
+	this.toKtbs = function(){
+		var newobsels = this.getNewObsel();
+		
+		for(var i=0;i<newobsels.length;i++){
+			var newobsel = newobsels[i];
+			var data = this.toTurtle(newobsel);
+			
+			this.post(this.trace_uri,data,newobsel["lc_index"]);
+		}		
+	};
+	
+	this.post = function (url,data,item) {
+		//var data = data;
+		//var ctype = "text/turtle";
+		
+		$.post(url, {'m': data}, function(ret){
+			if(ret=="201"){
+				var obselset = JSON.parse(localStorage["obselset"]);
+				obselset[item]["lc_status"] = "sent";
+				localStorage["obselset"] = JSON.stringify(obselset);// save
+			}
+		});		
+	};
+	
+};
+
+trace.Job = function(func,interval){
+	
+	this.running = true;
+	//this.func = func;
+	this.stop = function(){
+		this.running = false;
+	};
+	
+	this.run = function(){
+		if(this.running){
+			func();
+			setTimeout(this.run,interval);
+		}
+	};
+};
+
+$(document).ready(function(){
+	
+	// append trace icon
+	var btn_container = $("div[class='container']").find("div[class='nav-collapse collapse']")[0];
+	//var btn_container = document.body;
+	var start = new trace.StartUI(btn_container);
+	$("#traceicon").click();
+	
+	(function chart1(){
+		//var start = new Date(new Date("2013-02-25T19:51:38.777Z") - 1200195068*0.2);
+		var timeticks = [[d3.time.days,1,"%Y-%b-%d"],[d3.time.hours,4,"%Y-%b-%d %H"]];
+		
+		function x(d){
+			var date = new Date(d["start"]);
+			return date;
+		}
+		function y(d){
+			if(d["type"]=="click"){
+				return "click";
+			}else {
+				return "keyevent";
+			}
+		}
+
+		function radius(d){	return 10;}
+		function color(d){ return "green";}
+		function symbol(d){ 
+			if(d["type"]=="click"){
+				return "circle";
+			}else {
+				return "square";
+			}
+		}
+
+		var margin = {top: 5.5, right: 19.5, bottom: 80, left: 60};
+		var width = 960, height = 300;
+
+		var xs = [];
+		//d3.json("obselset.json", function(obselset) {
+			
+		//});
+		//console.log(xs);
+		var xScale = d3.fisheye.scale(d3.time.scale).domain([new Date(), new Date()]).range([0, width]),
+	    yScale = d3.scale.ordinal().domain(["click", "keyevent"]).range([height - 50, height - 100]);
+	    
+	    //radiusScale = d3.scale.sqrt().domain([0, 5e8]).range([0, 40]),
+	    //colorScale = d3.scale.category10().domain(["Sub-Saharan Africa", "South Asia", "Middle East & North Africa", "America", "Europe & Central Asia", "East Asia & Pacific"]);
+		
+		// The x & y axes.
+		  var xAxis = d3.svg.axis().orient("bottom").scale(xScale).ticks(d3.time.days,1).tickFormat(d3.time.format("%Y-%b-%d")).tickSubdivide(5).tickSize(-20,-10,0),
+		      yAxis = d3.svg.axis().scale(yScale).orient("left").tickPadding(10).tickSize(-width);
+		
+		// Create the SVG container and set the origin.
+		  var svg = d3.select("#chart1").append("svg")
+		      .attr("width", width + margin.left + margin.right)
+		      .attr("height", height + margin.top + margin.bottom)
+		    .append("g")
+		      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		// Add a background rect for mousemove.
+		  svg.append("rect")
+		      .attr("class", "background")
+		      .attr("width", width)
+		      .attr("height", height);
+
+		// Add the x-axis.
+		  svg.append("g")
+		      .attr("class", "x axis")
+		      .attr("transform", "translate(0," + height + ")")
+		      .call(xAxis);
+		// Add the y-axis.
+		  svg.append("g")
+		      .attr("class", "y axis")
+		      //.attr("transform", "translate(0," + width + ")")
+		      .call(yAxis);	
+	      
+		  
+		  //"http://localhost/ozalid/trace/obselset.json"
+		  //d3.json(localStorage["obselset"], function(obselset) {
+			  var obselset = JSON.parse(localStorage["obselset"]);
+			  var xs = d3.extent(obselset, function(d){
+						return new Date(d["start"]);
+					});
+				console.log(xs);
+				xScale = xScale.domain(xs).range([0, width]);
+				xAxis = xAxis.scale(xScale);
+				svg.select(".x.axis")
+					.call(xAxis)
+					.selectAll("text")
+						.attr("transform", "translate(-10,30) rotate(-65)");
+				
+			    // Add a dot per nation. Initialize the data at 1800, and set the colors.
+			    var dot = svg.append("g")
+			        .attr("class", "dots")
+			      .selectAll(".dot")
+			        .data(obselset)
+			      .enter().append("svg:path")
+			        .attr("class", "dot")
+			        .attr("d",d3.svg.symbol().type(function(d){return symbol(d);}).size(128))
+			        .style("fill", function(d) { return color(d); })
+			        .call(position);
+			        //.sort(function(a, b) { return radius(b) - radius(a); });
+
+			    // Add a title.
+			    dot.append("title")
+			        .text(function(d) { 
+						
+				        return d["start"]; 
+				});
+
+			    // Positions the dots based on data.
+			    function position(dot) {
+			      dot.attr("transform", function(d) { return "translate("+xScale(x(d))+","+yScale(y(d))+")"; });
+			          
+			    }
+
+			    svg.on("mousemove", function() {
+			   	  //console.log(d3.mouse(this)[0]);
+				  var mouse = d3.mouse(this);
+			      
+			      xScale.distortion(2).focus(mouse[0]);
+			      //yScale.distortion(2).focus(mouse[1]);
+
+			      dot.call(position);
+			      svg.select(".x.axis").call(xAxis);
+			      svg.select(".y.axis").call(yAxis);
+			    });
+			 // });
+		  var tick1 = document.getElementById("tick1");
+		  tick1.addEventListener("change",function(){
+				//console.log(xAxis);
+				var index = this.value;
+				xAxis = xAxis.ticks(timeticks[index][0],timeticks[index][1]).tickFormat(d3.time.format(timeticks[index][2]));
+				svg.select(".x.axis").call(xAxis).selectAll("text")
+				.attr("transform", "translate(-10,30) rotate(-65)");
+		  });
+
+
+
+
+
+
+		
+		
+	})();
+		
+});
+
+

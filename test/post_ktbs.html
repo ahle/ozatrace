@@ -1,0 +1,262 @@
+
+<!-- saved from url=(0050)http://localhost/ozalid/trace/test/cross_post.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+        <title>https://dsi-liris-silex.univ-lyon1.fr/b1/t1/</title>
+        <style text="text/css">
+    a { text-decoration: none; }
+    .prefixes { font-size: 66%%; float: right; }
+    .prefix { display: none; }
+    .subj { margin-top: 2ex; }
+    .pred { margin-left: 2em ; }
+    .obj  { margin-left: .5em ; display: inline; }
+    #debug { font-size: 66%%; color: blue }
+    </style>
+        <script text="text/javascript">
+
+    metadata = {};
+
+    function init_page() {
+        if (document.referrer == document.location.href ||
+            document.referrer == document.title) {
+            // heuristic to detect we arrived here from the editor
+            // then automatically re-open the editor
+            toggle_editor();
+        }
+    }
+
+    function toggle_editor() {
+        var editor = document.getElementById("editor");
+        var edit_button = document.getElementById("toggle");
+        if (edit_button.value == "hide editor") {
+            editor.hidden = true;
+            edit_button.value = "show editor";
+        } else {
+            editor.hidden = false;
+            if (edit_button.value == "edit") { // first time
+                reload_editor();
+            }
+            edit_button.value = "hide editor";
+        }
+    }
+
+    function error_message(textarea, msg) {
+        textarea.disabled = 1;
+        textarea.value = msg;
+        document.getElementById("save").disabled = false;
+    }
+
+    function reload_editor() {
+        var textarea = document.getElementById("textarea");
+        var ctype = document.getElementById("ctype");
+        var debug = document.getElementById("debug");
+        var req = make_req();
+        try {
+            req.open("GET", document.title, true);
+            req.setRequestHeader("Accept", ctype.value);
+            req.setRequestHeader("If-None-Match", "\"(force-reload)\"");
+        }
+        catch(err) {
+            error_message(textarea, "error while preparing request: " + err);
+            return;
+        }
+        req.onreadystatechange= function () {
+            if (req.readyState == 4) {
+                if (req.status == 200) {
+                    textarea.value = req.responseText;
+                    ctype.value    = req.getResponseHeader("Content-Type");
+                    //metadata.etag  = req.getResponseHeader("Etag");
+                    //debug.textContent = "etag: " + metadata.etag;
+                    document.getElementById("save").disabled = false;
+                    textarea.disabled = false;
+                } else {
+                    error_message(textarea,
+                                  "error while loading: " + req.status +
+                                  "\n" + req.responseText);
+                }
+            } else {
+                textarea.value = textarea.value + ".";
+            }
+        };
+        textarea.value = "loading..";
+        req.send();
+    };
+
+    function delete_resource() {
+        var textarea = document.getElementById("textarea");
+        var ctype = document.getElementById("ctype");
+        var debug = document.getElementById("debug");
+        var req = make_req();
+        var uri = document.title.substring(0,document.title.lastIndexOf('/')+1);
+        var parent_uri = uri.substring(0,uri.substring(0,uri.length-1).lastIndexOf('/')+1);
+        try {
+            req.open("DELETE", uri, false);                      
+        }
+        catch(err) {
+            error_message(textarea, "error while preparing request: " + err);
+            return;
+        }        
+        textarea.value = "loading..";
+        req.send();
+        window.location = parent_uri;
+    };
+
+    function save_editor() {
+        var textarea = document.getElementById("textarea");
+        var ctype = document.getElementById("ctype");
+        var debug = document.getElementById("debug");
+        var req = make_req();
+        try {
+            req.open("PUT", document.title, true);
+            req.setRequestHeader("Accept", ctype.value);
+            req.setRequestHeader("Content-Type", ctype.value);
+            req.setRequestHeader("If-Match", metadata.etag);
+        }
+        catch(err) {
+            error_message(textarea, "error while preparing request: " + err);
+            return;
+        }
+        req.onreadystatechange= function () {
+            if (req.readyState == 4) {
+                if (req.status == 200) {
+                    textarea.value = req.responseText;
+                    ctype.value = req.getResponseHeader("Content-Type");
+                    metadata.etag   = req.getResponseHeader("Etag");
+                    debug.textContent = "etag: " + metadata.etag;
+                    window.location.assign(document.title);                    
+                } else {
+                    error_message(textarea,
+                                  "error while saving: " + req.status +
+                                  "\n" + req.responseText);
+                }
+            } else {
+                textarea.value = textarea.value + ".";
+            }
+        };
+        var payload = textarea.value;
+        textarea.value = "loading..";
+        req.send(payload);
+    };
+
+    function post_editor() {
+        var textarea = document.getElementById("textarea");
+        var ctype = document.getElementById("ctype");
+        var req = make_req();
+        try {
+            req.open("POST", document.title, true);
+            req.setRequestHeader("Content-Type", ctype.value);
+        }
+        catch(err) {
+            error_message(textarea, "error while preparing request: " + err);
+            return;
+        }
+        req.onreadystatechange= function () {
+            if (req.readyState == 4) {
+                if (req.status == 201) {
+                    var location = req.getResponseHeader("Location");
+                    window.location.assign(location)
+                } else {
+                    error_message(textarea,
+                                  "error while posting: " + req.status +
+                                  "\n" + req.responseText);
+                }
+            } else {
+                textarea.value = textarea.value + ".";
+            }
+        };
+        var payload = textarea.value;
+        textarea.value = "loading..";
+        req.send(payload);
+    };
+
+    function make_req() {
+        var req;
+        try  { req=new XMLHttpRequest(); }
+        catch (e) {
+            try { req=new ActiveXObject("Msxml2.XMLHTTP"); }
+            catch (e) {
+              try { req=new ActiveXObject("Microsoft.XMLHTTP"); }
+              catch (e) {
+                  alert("Your browser does not support AJAX!");
+                  return false;
+              }
+          }
+        }
+        return req;
+    }
+    </script>
+        </head>
+        <body onload="init_page()">
+        <h1># <a href="http://localhost:8001/">http://localhost:8001/</a><a href="http://localhost:8001/base1/">base1/</a><a href="http://localhost:8001/base1/t01/">t01/</a><a href="http://localhost/ozalid/trace/test/cross_post_files/cross_post.html">@obsels</a></h1>
+<div>#
+<a href="http://localhost:8001/base1/t01/@obsels.html">html</a>
+<a href="http://localhost:8001/base1/t01/@obsels.rdf">rdf</a>
+<a href="http://localhost:8001/base1/t01/@obsels.nt">nt</a>
+<a href="http://localhost:8001/base1/t01/@obsels.n3">n3</a>
+<a href="http://localhost:8001/base1/t01/@obsels.ttl">ttl</a>
+</div>
+<div class="prefixes">
+<div>@base &lt;http://localhost:8001/base1/t01/@obsels&gt; .</div>
+<div>@prefix rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt; .</div>
+<div>@prefix rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt; .</div>
+<div>@prefix owl: &lt;http://www.w3.org/2002/07/owl#&gt; .</div>
+<div>@prefix xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt; .</div>
+<div>@prefix rdfrest: &lt;http://liris.cnrs.fr/silex/2009/rdfrest#&gt; .</div>
+<div>@prefix ktbs: &lt;http://liris.cnrs.fr/silex/2009/ktbs#&gt; .</div>
+</div>
+<div class="subj"><a href="http://localhost:8001/base1/t01/click42">&lt;click42&gt;</a>
+	<div class="pred"><a title="ktbs:hasBegin" href="http://liris.cnrs.fr/silex/2009/ktbs#hasBegin"><span class="prefix">ktbs:</span>hasBegin</a>
+		<div class="obj">"89625106686"^^<a title="xsd:long" href="http://www.w3.org/2001/XMLSchema#long"><span class="prefix">xsd:</span>long</a>
+;</div></div>
+	<div class="pred"><a title="ktbs:hasBeginDT" href="http://liris.cnrs.fr/silex/2009/ktbs#hasBeginDT"><span class="prefix">ktbs:</span>hasBeginDT</a>
+		<div class="obj">"2013-03-01T02:00:46.686Z"^^<a title="xsd:dateTime" href="http://www.w3.org/2001/XMLSchema#dateTime"><span class="prefix">xsd:</span>dateTime</a>
+;</div></div>
+	<div class="pred"><a title="ktbs:hasEnd" href="http://liris.cnrs.fr/silex/2009/ktbs#hasEnd"><span class="prefix">ktbs:</span>hasEnd</a>
+		<div class="obj">"89625106686"^^<a title="xsd:long" href="http://www.w3.org/2001/XMLSchema#long"><span class="prefix">xsd:</span>long</a>
+;</div></div>
+	<div class="pred"><a title="ktbs:hasEndDT" href="http://liris.cnrs.fr/silex/2009/ktbs#hasEndDT"><span class="prefix">ktbs:</span>hasEndDT</a>
+		<div class="obj">"2013-03-01T02:00:46.686Z"^^<a title="xsd:dateTime" href="http://www.w3.org/2001/XMLSchema#dateTime"><span class="prefix">xsd:</span>dateTime</a>
+;</div></div>
+	<div class="pred"><a title="ktbs:hasTrace" href="http://liris.cnrs.fr/silex/2009/ktbs#hasTrace"><span class="prefix">ktbs:</span>hasTrace</a>
+		<div class="obj"><a href="http://localhost:8001/base1/t01/">&lt;.&gt;</a>
+;</div></div>
+	<div class="pred"><a title="rdf:type" href="http://www.w3.org/1999/02/22-rdf-syntax-ns#type"><span class="prefix">rdf:</span>type</a>
+		<div class="obj"><a href="http://localhost:8001/base1/t01/click">&lt;click&gt;</a>
+.</div></div></div>
+
+
+
+        <br><br><hr>
+    <input type="button" value="hide editor" id="toggle" onclick="toggle_editor()">
+    <div id="editor">
+      <textarea id="textarea" cols="80" rows="16">      </textarea>
+      <br>
+      <input type="button" value="save" id="save" onclick="save_editor()">
+      <input type="button" value="reload" id="reload" onclick="reload_editor()">
+      <input type="button" value="post new object" id="post" onclick="post_editor()">
+      <input type="button" value="delete" id="delete" onclick="delete_resource()">
+      <input id="ctype" value="text/turtle">
+      <div id="debug" style="text-color: blue" hidden="">etag: "ad5550e5bdab32ac401a6202f00ee6f4"</div>
+    </div>
+    
+        
+<div id="window-resizer-tooltip" style="display: block; ">
+	<a href="http://localhost:8001/base1/t01/@obsels#" title="Edit settings" style="background-image: url(chrome-extension://kkelicaakdanhinjdeammmilcgefonfh/images/icon_19.png); "></a>
+	<span class="tooltipTitle">Window size: </span>
+	<span class="tooltipWidth" id="winWidth">1680</span> x <span class="tooltipHeight" id="winHeight">999</span>
+	<br>
+	<span class="tooltipTitle">Viewport size: </span>
+	<span class="tooltipWidth" id="vpWidth">1680</span> x <span class="tooltipHeight" id="vpHeight">897</span></div>
+<script>
+document.getElementById("textarea").value = '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .' + "\n" 
+	+ '@prefix ktbs: <http://liris.cnrs.fr/silex/2009/ktbs#> .' + "\n" 
+	+ '@prefix : <http://localhost:8001/base1/model1/> . ' + "\n" 
+	+ '<click42> a <click>.'  + "\n" 
+	+ '<click42> ktbs:hasTrace <> .'  + "\n" 
+	+ '<click42> ktbs:hasBeginDT "2013-03-01T02:00:46.686Z"^^xsd:dateTime .'  + "\n" 
+	+ '<click42> ktbs:hasEndDT "2013-03-01T02:00:46.686Z"^^xsd:dateTime .' + "\n" ;
+
+
+</script>
+
+
+<div id="window-resizer-tooltip"><a href="http://localhost/ozalid/trace/test/cross_post.html#" title="Edit settings"></a><span class="tooltipTitle">Window size: </span><span class="tooltipWidth" id="winWidth"></span> x <span class="tooltipHeight" id="winHeight"></span><br><span class="tooltipTitle">Viewport size: </span><span class="tooltipWidth" id="vpWidth"></span> x <span class="tooltipHeight" id="vpHeight"></span></div></body></html>
